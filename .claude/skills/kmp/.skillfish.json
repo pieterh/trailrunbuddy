@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "kmp",
+  "owner": "pddhkt",
+  "repo": "kotlin-kmp-skills",
+  "path": "plugins/kotlin-kmp/skills/kmp",
+  "branch": "master",
+  "sha": "2b38793040b9352026dc2abf3ee6df7616ed9907",
+  "source": "manual"
+}
