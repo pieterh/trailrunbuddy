@@ -7,7 +7,7 @@ import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileResult
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.GetProfilesUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.UndoDeleteProfileUseCase
-import com.trailrunbuddy.app.platform.service.SessionServiceConnection
+import com.trailrunbuddy.app.platform.service.SessionController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ class ProfileListViewModel @Inject constructor(
     private val getProfilesUseCase: GetProfilesUseCase,
     private val deleteProfileUseCase: DeleteProfileUseCase,
     private val undoDeleteProfileUseCase: UndoDeleteProfileUseCase,
-    private val sessionServiceConnection: SessionServiceConnection
+    private val sessionController: SessionController
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileListUiState())
@@ -39,7 +39,7 @@ class ProfileListViewModel @Inject constructor(
     init {
         combine(
             getProfilesUseCase(),
-            sessionServiceConnection.activeProfileId
+            sessionController.activeProfileId
         ) { profiles, activeId ->
             _uiState.update { state ->
                 state.copy(
@@ -83,7 +83,7 @@ class ProfileListViewModel @Inject constructor(
     fun onErrorDismissed() = _uiState.update { it.copy(errorMessage = null) }
 
     fun onStartSession(profileId: Long) {
-        sessionServiceConnection.startSession(profileId)
+        sessionController.startSession(profileId)
         viewModelScope.launch {
             _events.send(ProfileListUiEvent.NavigateToActiveSession(profileId))
         }

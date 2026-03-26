@@ -9,7 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.trailrunbuddy.app.platform.service.SessionServiceConnection
+import com.trailrunbuddy.app.platform.service.SessionController
 import com.trailrunbuddy.app.ui.activesession.ActiveSessionScreen
 import com.trailrunbuddy.app.ui.profiledetail.ProfileDetailScreen
 import com.trailrunbuddy.app.ui.profilelist.ProfileListScreen
@@ -17,11 +17,11 @@ import com.trailrunbuddy.app.ui.settings.SettingsScreen
 
 @Composable
 fun NavGraph(
-    sessionServiceConnection: SessionServiceConnection =
-        hiltViewModel<NavGraphViewModel>().sessionServiceConnection
+    sessionController: SessionController =
+        hiltViewModel<NavGraphViewModel>().sessionController
 ) {
     val navController = rememberNavController()
-    val activeProfileId by sessionServiceConnection.activeProfileId.collectAsStateWithLifecycle()
+    val activeProfileId by sessionController.activeProfileId.collectAsStateWithLifecycle()
 
     // Start destination: active session → go there directly (RS-2, NI-2)
     val startDestination = if (activeProfileId != null) {

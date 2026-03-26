@@ -16,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class SessionNotificationManager @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : SessionNotificationController {
     companion object {
         const val CHANNEL_ID = "trail_run_session"
         const val NOTIFICATION_ID = 101
@@ -25,7 +25,7 @@ class SessionNotificationManager @Inject constructor(
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    fun createChannel() {
+    override fun createChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Trail Run Session",
@@ -75,7 +75,7 @@ class SessionNotificationManager @Inject constructor(
             .build()
     }
 
-    fun update(profileId: Long, nextTimerName: String, remainingMs: Long) {
+    override fun update(profileId: Long, nextTimerName: String, remainingMs: Long) {
         notificationManager.notify(
             NOTIFICATION_ID,
             buildNotification(profileId, nextTimerName, remainingMs)

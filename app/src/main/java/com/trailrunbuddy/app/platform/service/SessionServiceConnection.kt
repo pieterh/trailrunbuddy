@@ -13,12 +13,12 @@ import javax.inject.Singleton
 class SessionServiceConnection @Inject constructor(
     @ApplicationContext private val context: Context,
     private val stateHolder: SessionStateHolder
-) {
-    val countdownStates: StateFlow<List<TimerCountdownState>> = stateHolder.countdownStates
-    val sessionState: StateFlow<SessionState?> = stateHolder.sessionState
-    val activeProfileId: StateFlow<Long?> = stateHolder.activeProfileId
+) : SessionController {
+    override val countdownStates: StateFlow<List<TimerCountdownState>> = stateHolder.countdownStates
+    override val sessionState: StateFlow<SessionState?> = stateHolder.sessionState
+    override val activeProfileId: StateFlow<Long?> = stateHolder.activeProfileId
 
-    fun startSession(profileId: Long) {
+    override fun startSession(profileId: Long) {
         val intent = Intent(context, SessionService::class.java).apply {
             action = SessionService.ACTION_START
             putExtra(SessionService.EXTRA_PROFILE_ID, profileId)
@@ -26,11 +26,11 @@ class SessionServiceConnection @Inject constructor(
         context.startForegroundService(intent)
     }
 
-    fun pauseSession() = sendAction(SessionService.ACTION_PAUSE)
+    override fun pauseSession() = sendAction(SessionService.ACTION_PAUSE)
 
-    fun resumeSession() = sendAction(SessionService.ACTION_RESUME)
+    override fun resumeSession() = sendAction(SessionService.ACTION_RESUME)
 
-    fun stopSession() = sendAction(SessionService.ACTION_STOP)
+    override fun stopSession() = sendAction(SessionService.ACTION_STOP)
 
     private fun sendAction(action: String) {
         val intent = Intent(context, SessionService::class.java).apply {

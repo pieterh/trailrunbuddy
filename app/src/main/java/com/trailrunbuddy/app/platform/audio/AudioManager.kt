@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class AudioManager @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : AudioPlayer {
     private val soundPool: SoundPool = SoundPool.Builder()
         .setMaxStreams(4)
         .setAudioAttributes(
@@ -32,15 +32,15 @@ class AudioManager @Inject constructor(
         warningBeepSoundId = soundPool.load(context, R.raw.warning_beep, 1)
     }
 
-    fun playAlert() {
+    override fun playAlert() {
         if (loaded) soundPool.play(alertSoundId, 1f, 1f, 1, 0, 1f)
     }
 
-    fun playPreWarning() {
+    override fun playPreWarning() {
         if (loaded) soundPool.play(warningBeepSoundId, 0.7f, 0.7f, 1, 0, 1f)
     }
 
-    fun release() {
+    override fun release() {
         soundPool.release()
     }
 }

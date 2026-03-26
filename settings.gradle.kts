@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TrailRunBuddy"
-include(":app")
+include(":app", ":shared")

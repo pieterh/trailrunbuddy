@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.trailrunbuddy.app.data.settings.SettingsStorage
 import com.trailrunbuddy.app.domain.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -18,16 +19,16 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Singleton
 class SettingsDataStore @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : SettingsStorage {
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
-    val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
+    override val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         ThemeMode.valueOf(prefs[Keys.THEME_MODE] ?: ThemeMode.SYSTEM.name)
     }
 
-    suspend fun setThemeMode(mode: ThemeMode) {
+    override suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { prefs ->
             prefs[Keys.THEME_MODE] = mode.name
         }

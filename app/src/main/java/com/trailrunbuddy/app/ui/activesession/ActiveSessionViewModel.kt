@@ -3,7 +3,7 @@ package com.trailrunbuddy.app.ui.activesession
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trailrunbuddy.app.domain.model.SessionState
-import com.trailrunbuddy.app.platform.service.SessionServiceConnection
+import com.trailrunbuddy.app.platform.service.SessionController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ActiveSessionViewModel @Inject constructor(
-    private val sessionServiceConnection: SessionServiceConnection
+    private val sessionController: SessionController
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ActiveSessionUiState())
@@ -29,8 +29,8 @@ class ActiveSessionViewModel @Inject constructor(
 
     init {
         combine(
-            sessionServiceConnection.sessionState,
-            sessionServiceConnection.countdownStates
+            sessionController.sessionState,
+            sessionController.countdownStates
         ) { sessionState, countdownStates ->
             _uiState.update { state ->
                 state.copy(
@@ -44,8 +44,8 @@ class ActiveSessionViewModel @Inject constructor(
 
     fun onPauseResume() {
         when (_uiState.value.sessionState) {
-            SessionState.RUNNING -> sessionServiceConnection.pauseSession()
-            SessionState.PAUSED -> sessionServiceConnection.resumeSession()
+            SessionState.RUNNING -> sessionController.pauseSession()
+            SessionState.PAUSED -> sessionController.resumeSession()
             else -> Unit
         }
     }
@@ -54,7 +54,7 @@ class ActiveSessionViewModel @Inject constructor(
 
     fun onStopConfirmed() {
         _uiState.update { it.copy(showStopConfirmDialog = false) }
-        sessionServiceConnection.stopSession()
+        sessionController.stopSession()
         viewModelScope.launch {
             _events.send(ActiveSessionUiEvent.NavigateToProfileList)
         }

@@ -10,7 +10,7 @@ import com.trailrunbuddy.app.domain.model.SessionState
 import com.trailrunbuddy.app.domain.model.TimerState
 import com.trailrunbuddy.app.domain.repository.ProfileRepository
 import com.trailrunbuddy.app.domain.repository.SessionRepository
-import com.trailrunbuddy.app.platform.audio.AudioManager
+import com.trailrunbuddy.app.platform.audio.AudioPlayer
 import com.trailrunbuddy.app.platform.notification.SessionNotificationManager
 import com.trailrunbuddy.app.platform.timer.SessionTimerEngine
 import com.trailrunbuddy.app.platform.timer.TimerEvent
@@ -43,7 +43,7 @@ class SessionService : Service() {
     @Inject lateinit var sessionRepository: SessionRepository
     @Inject lateinit var stateHolder: SessionStateHolder
     @Inject lateinit var notificationManager: SessionNotificationManager
-    @Inject lateinit var audioManager: AudioManager
+    @Inject lateinit var audioManager: AudioPlayer
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val persistMutex = Mutex()

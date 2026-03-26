@@ -1,0 +1,5 @@
+com.trailrunbuddy.shared.test.shared-androidTest-0 /Users/pieter/Documents/repos/pieterh/trailrunbuddy/shared/build/generated/res/resValues/androidTest/debug
+com.trailrunbuddy.shared.test.shared-mergeDebugAndroidTestResources-1 /Users/pieter/Documents/repos/pieterh/trailrunbuddy/shared/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/merged.dir
+com.trailrunbuddy.shared.test.shared-mergeDebugAndroidTestResources-2 /Users/pieter/Documents/repos/pieterh/trailrunbuddy/shared/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/stripped.dir
+com.trailrunbuddy.shared.test.shared-debugAndroidTest-3 /Users/pieter/Documents/repos/pieterh/trailrunbuddy/shared/build/intermediates/merged_res/debugAndroidTest/mergeDebugAndroidTestResources
+com.trailrunbuddy.shared.test.shared-debug-4 /Users/pieter/Documents/repos/pieterh/trailrunbuddy/shared/build/intermediates/packaged_res/debug/packageDebugResources
