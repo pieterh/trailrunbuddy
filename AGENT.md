@@ -19,9 +19,9 @@
 
 # Package & Versions
 - Package: `com.trailrunbuddy.app`
-- Kotlin 2.1.20 / AGP 8.7.3 / Compose BOM 2024.12.01
-- KSP 2.1.20-1.0.29 / Hilt 2.52 / Room 2.7.0 / Lifecycle 2.9.0 / Coroutines 1.9.0
-- compileSdk/targetSdk 35 / minSdk 31
+- Kotlin / AGP / Compose BOM 
+- KSP / Hilt / Room / Lifecycle / Coroutines 
+- compileSdk/targetSdk 36 / minSdk 31
 
 ---
 

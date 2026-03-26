@@ -1,1 +1,0 @@
-com.trailrunbuddy.shared

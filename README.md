@@ -1,1 +1,1 @@
-# trailrunbuddy
+# Trail Run Buddy
