@@ -17,7 +17,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.trailrunbuddy.app.HiltTestRunner"
     }
 
     buildTypes {
@@ -83,6 +83,8 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.hilt.testing)
+    kspTest(libs.hilt.compiler)
 
     // Instrumented tests
     androidTestImplementation(platform(libs.compose.bom))
@@ -90,4 +92,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.hilt.testing)
+    androidTestImplementation(libs.room.testing)
+    kspAndroidTest(libs.hilt.compiler)
 }

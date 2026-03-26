@@ -20,7 +20,8 @@ class SessionTimerEngine(
     private val startedAt: Long,
     initialTotalPausedMs: Long = 0L,
     initialTimerStates: List<TimerState> = emptyList(),
-    private val onEvent: suspend (TimerEvent) -> Unit
+    private val onEvent: suspend (TimerEvent) -> Unit,
+    private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
     private var totalPausedMs: Long = initialTotalPausedMs
     private var pausedAtMs: Long? = null
@@ -52,13 +53,13 @@ class SessionTimerEngine(
 
     fun pause() {
         if (pausedAtMs == null) {
-            pausedAtMs = System.currentTimeMillis()
+            pausedAtMs = clock()
         }
     }
 
     fun resume() {
         pausedAtMs?.let { pausedAt ->
-            totalPausedMs += System.currentTimeMillis() - pausedAt
+            totalPausedMs += clock() - pausedAt
             pausedAtMs = null
         }
     }
@@ -73,7 +74,7 @@ class SessionTimerEngine(
     fun getTimerStates(): List<TimerState> = mutableTimerStates.values.toList()
 
     private suspend fun tick() {
-        val now = System.currentTimeMillis()
+        val now = pausedAtMs ?: clock()
         val elapsedMs = now - startedAt - totalPausedMs
 
         val states = timers.map { timer ->
