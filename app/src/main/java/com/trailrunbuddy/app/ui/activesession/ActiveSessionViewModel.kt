@@ -1,0 +1,64 @@
+package com.trailrunbuddy.app.ui.activesession
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.trailrunbuddy.app.domain.model.SessionState
+import com.trailrunbuddy.app.platform.service.SessionServiceConnection
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class ActiveSessionViewModel @Inject constructor(
+    private val sessionServiceConnection: SessionServiceConnection
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(ActiveSessionUiState())
+    val uiState: StateFlow<ActiveSessionUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<ActiveSessionUiEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
+
+    init {
+        combine(
+            sessionServiceConnection.sessionState,
+            sessionServiceConnection.countdownStates
+        ) { sessionState, countdownStates ->
+            _uiState.update { state ->
+                state.copy(
+                    isLoading = false,
+                    sessionState = sessionState,
+                    countdownStates = countdownStates
+                )
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    fun onPauseResume() {
+        when (_uiState.value.sessionState) {
+            SessionState.RUNNING -> sessionServiceConnection.pauseSession()
+            SessionState.PAUSED -> sessionServiceConnection.resumeSession()
+            else -> Unit
+        }
+    }
+
+    fun onStopRequested() = _uiState.update { it.copy(showStopConfirmDialog = true) }
+
+    fun onStopConfirmed() {
+        _uiState.update { it.copy(showStopConfirmDialog = false) }
+        sessionServiceConnection.stopSession()
+        viewModelScope.launch {
+            _events.send(ActiveSessionUiEvent.NavigateToProfileList)
+        }
+    }
+
+    fun onStopDismissed() = _uiState.update { it.copy(showStopConfirmDialog = false) }
+}
