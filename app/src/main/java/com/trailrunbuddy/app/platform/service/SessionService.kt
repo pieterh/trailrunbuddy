@@ -23,6 +23,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -44,17 +46,18 @@ class SessionService : Service() {
     @Inject lateinit var audioManager: AudioManager
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val persistMutex = Mutex()
     private var engine: SessionTimerEngine? = null
     private var persistJob: Job? = null
     private var notificationJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var currentProfileId: Long = -1L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         notificationManager.createChannel()
-        acquireWakeLock()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -85,6 +88,7 @@ class SessionService : Service() {
             sessionRepository.saveSession(session)
             stateHolder.updateActiveProfileId(profileId)
             stateHolder.updateSessionState(SessionState.RUNNING)
+            currentProfileId = profileId
 
             engine = SessionTimerEngine(
                 timers = profile.timers,
@@ -106,6 +110,7 @@ class SessionService : Service() {
                 return@launch
             }
 
+            currentProfileId = session.profileId
             stateHolder.updateActiveProfileId(session.profileId)
             stateHolder.updateSessionState(session.state)
 
@@ -136,6 +141,10 @@ class SessionService : Service() {
         engine?.resume()
         stateHolder.updateSessionState(SessionState.RUNNING)
         persistCurrentState(SessionState.RUNNING)
+        // If restored from paused (monitoring jobs were never launched), start them now
+        if (notificationJob == null && currentProfileId != -1L) {
+            launchEngine(currentProfileId)
+        }
     }
 
     private fun stopSession() {
@@ -143,7 +152,9 @@ class SessionService : Service() {
         persistJob?.cancel()
         notificationJob?.cancel()
         serviceScope.launch {
-            sessionRepository.deleteSession()
+            persistMutex.withLock {
+                sessionRepository.deleteSession()
+            }
             stateHolder.clear()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -151,15 +162,21 @@ class SessionService : Service() {
     }
 
     private fun launchEngine(profileId: Long) {
+        acquireWakeLock()
         engine?.start(serviceScope)
 
-        // Forward countdown states to holder + update notification
+        // Forward countdown states to holder; throttle notification updates to 1 Hz
+        var lastNotifiedSecond = -1L
         notificationJob = serviceScope.launch {
             engine?.countdownStates?.collectLatest { states ->
                 stateHolder.updateCountdownStates(states)
                 val next = states.filter { !it.isFinished }.minByOrNull { it.remainingMs }
                 if (next != null) {
-                    notificationManager.update(profileId, next.timer.name, next.remainingMs)
+                    val currentSecond = next.remainingMs / 1000
+                    if (currentSecond != lastNotifiedSecond) {
+                        lastNotifiedSecond = currentSecond
+                        notificationManager.update(profileId, next.timer.name, next.remainingMs)
+                    }
                 }
             }
         }
@@ -188,14 +205,16 @@ class SessionService : Service() {
     private fun persistCurrentState(state: SessionState) {
         val currentEngine = engine ?: return
         serviceScope.launch {
-            val current = sessionRepository.getActiveSession() ?: return@launch
-            sessionRepository.saveSession(
-                current.copy(
-                    state = state,
-                    totalPausedMs = currentEngine.getTotalPausedMs(),
-                    timerStates = currentEngine.getTimerStates()
+            persistMutex.withLock {
+                val current = sessionRepository.getActiveSession() ?: return@withLock
+                sessionRepository.saveSession(
+                    current.copy(
+                        state = state,
+                        totalPausedMs = currentEngine.getTotalPausedMs(),
+                        timerStates = currentEngine.getTimerStates()
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -207,6 +226,7 @@ class SessionService : Service() {
     }
 
     private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TrailRunBuddy:SessionWakeLock")
         wakeLock?.acquire(12 * 60 * 60 * 1000L) // 12 hours max
