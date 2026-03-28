@@ -147,7 +147,6 @@ fun ProfileListScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfileListItem(
     profile: Profile,

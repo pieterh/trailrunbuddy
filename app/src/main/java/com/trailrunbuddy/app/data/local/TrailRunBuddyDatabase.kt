@@ -12,7 +12,7 @@ import com.trailrunbuddy.app.data.local.entity.TimerEntity
 @Database(
     entities = [ProfileEntity::class, TimerEntity::class, SessionEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class TrailRunBuddyDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
