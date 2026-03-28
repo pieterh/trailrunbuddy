@@ -5,5 +5,6 @@ data class Profile(
     val name: String,
     val colorHex: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val timers: List<Timer> = emptyList()
+    val timers: List<Timer> = emptyList(),
+    val sortOrder: Int = 0
 )

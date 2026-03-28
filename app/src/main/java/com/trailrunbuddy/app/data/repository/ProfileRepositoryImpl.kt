@@ -61,4 +61,14 @@ class ProfileRepositoryImpl @Inject constructor(
         withContext(ioDispatcher) {
             profileDao.deleteById(profileId)
         }
+
+    override suspend fun updateProfileOrder(orderedIds: List<Long>) =
+        withContext(ioDispatcher) {
+            db.withTransaction {
+                val updated = orderedIds.mapIndexedNotNull { index, id ->
+                    profileDao.getById(id)?.profile?.copy(sortOrder = index)
+                }
+                profileDao.updateAll(updated)
+            }
+        }
 }

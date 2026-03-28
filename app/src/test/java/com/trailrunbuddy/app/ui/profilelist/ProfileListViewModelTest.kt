@@ -7,6 +7,7 @@ import com.trailrunbuddy.app.domain.model.TimerType
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileResult
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.GetProfilesUseCase
+import com.trailrunbuddy.app.domain.usecase.profile.ReorderProfilesUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.UndoDeleteProfileUseCase
 import com.trailrunbuddy.app.platform.service.SessionServiceConnection
 import io.mockk.coEvery
@@ -36,6 +37,7 @@ class ProfileListViewModelTest {
     private val getProfilesUseCase: GetProfilesUseCase = mockk()
     private val deleteProfileUseCase: DeleteProfileUseCase = mockk()
     private val undoDeleteProfileUseCase: UndoDeleteProfileUseCase = mockk()
+    private val reorderProfilesUseCase: ReorderProfilesUseCase = mockk(relaxed = true)
     private val sessionServiceConnection: SessionServiceConnection = mockk(relaxed = true)
 
     private val activeProfileIdFlow = MutableStateFlow<Long?>(null)
@@ -64,6 +66,7 @@ class ProfileListViewModelTest {
         getProfilesUseCase,
         deleteProfileUseCase,
         undoDeleteProfileUseCase,
+        reorderProfilesUseCase,
         sessionServiceConnection
     )
 

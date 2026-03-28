@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.activity)
     implementation(libs.compose.navigation)
+    implementation(libs.reorderable)
 
     // Lifecycle
     implementation(libs.lifecycle.viewmodel.compose)

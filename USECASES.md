@@ -12,10 +12,11 @@
 10. Two profiles may share the same name (no uniqueness constraint)
 11. It should not be possible to delete a profile while its session is active → disbled; prevent deletion until session is stopped
 12. Profiles and there configuration persists across device restart
+13. Profiles can be manually sorted by dragging them in the list
 
 ### Timer Management (TM)
 1. Add timer with 0-second duration → inline error, save blocked
-2. A timer can be made either reoccuring or fires once.
+2. A timer can be made either recurring or fires once.
 3. A timer can be configured in hours and minutes.
 
 ### Session Lifecycle (SL)

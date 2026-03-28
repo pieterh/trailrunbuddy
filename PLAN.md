@@ -34,7 +34,7 @@ com.trailrunbuddy.app/
 │   ├── model/{Profile, Timer, Session, SessionState, TimerType, ThemeMode}.kt
 │   ├── repository/{ProfileRepository, SessionRepository, SettingsRepository}.kt  # Interfaces
 │   └── usecase/
-│       ├── profile/{GetProfiles, GetProfileWithTimers, SaveProfile, DeleteProfile, UndoDeleteProfile}UseCase.kt
+│       ├── profile/{GetProfiles, GetProfileWithTimers, SaveProfile, DeleteProfile, UndoDeleteProfile, ReorderProfiles}UseCase.kt
 │       ├── timer/{AddTimer, UpdateTimer, DeleteTimer}UseCase.kt
 │       ├── session/{StartSession, PauseSession, ResumeSession, StopSession, GetActiveSession}UseCase.kt
 │       └── settings/{GetTheme, SetTheme}UseCase.kt

@@ -20,14 +20,16 @@ fun ProfileWithTimers.toDomain(): Profile = Profile(
     name = profile.name,
     colorHex = profile.colorHex,
     createdAt = profile.createdAt,
-    timers = timers.sortedBy { it.sortOrder }.map { it.toDomain() }
+    timers = timers.sortedBy { it.sortOrder }.map { it.toDomain() },
+    sortOrder = profile.sortOrder
 )
 
 fun Profile.toEntity(): ProfileEntity = ProfileEntity(
     id = id,
     name = name,
     colorHex = colorHex,
-    createdAt = createdAt
+    createdAt = createdAt,
+    sortOrder = sortOrder
 )
 
 // ──────────────────────────────────────────

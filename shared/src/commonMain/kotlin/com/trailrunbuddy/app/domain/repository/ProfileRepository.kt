@@ -9,4 +9,5 @@ interface ProfileRepository {
     suspend fun getProfileWithTimers(profileId: Long): Profile?
     suspend fun saveProfile(profile: Profile, timers: List<Timer>): Long
     suspend fun deleteProfile(profileId: Long)
+    suspend fun updateProfileOrder(orderedIds: List<Long>)
 }

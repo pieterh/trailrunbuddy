@@ -26,7 +26,9 @@ object AppModule {
             context,
             TrailRunBuddyDatabase::class.java,
             "trailrunbuddy.db"
-        ).build()
+        )
+            .addMigrations(TrailRunBuddyDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideProfileDao(db: TrailRunBuddyDatabase): ProfileDao = db.profileDao()

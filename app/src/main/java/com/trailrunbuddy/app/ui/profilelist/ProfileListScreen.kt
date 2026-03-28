@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -42,6 +45,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trailrunbuddy.app.domain.model.Profile
 import com.trailrunbuddy.app.ui.components.ProfileAvatar
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,31 +134,54 @@ fun ProfileListScreen(
                 )
             }
         } else {
-            LazyColumn(Modifier.padding(padding)) {
+            val lazyListState = rememberLazyListState()
+            val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
+                viewModel.onReorder(from.index, to.index)
+            }
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier.padding(padding)
+            ) {
                 items(
                     items = uiState.profiles,
                     key = { it.id }
                 ) { profile ->
-                    ProfileListItem(
-                        profile = profile,
-                        isSessionActive = uiState.activeProfileId == profile.id,
-                        onTap = { onNavigateToProfileDetail(profile.id) },
-                        onStart = { viewModel.onStartSession(profile.id) },
-                        onDelete = { viewModel.onDeleteProfile(profile) }
-                    )
+                    ReorderableItem(reorderState, key = profile.id) { isDragging ->
+                        ProfileListItem(
+                            profile = profile,
+                            isSessionActive = uiState.activeProfileId == profile.id,
+                            isDragging = isDragging,
+                            onTap = { onNavigateToProfileDetail(profile.id) },
+                            onStart = { viewModel.onStartSession(profile.id) },
+                            onDelete = { viewModel.onDeleteProfile(profile) },
+                            dragHandle = {
+                                Icon(
+                                    imageVector = Icons.Default.DragHandle,
+                                    contentDescription = "Reorder",
+                                    modifier = Modifier.draggableHandle(
+                                    onDragStopped = { viewModel.onReorderFinished() }
+                                ),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfileListItem(
     profile: Profile,
     isSessionActive: Boolean,
+    isDragging: Boolean,
     onTap: () -> Unit,
     onStart: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    dragHandle: @Composable () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -185,12 +213,19 @@ private fun ProfileListItem(
             onClick = onTap,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            elevation = if (isDragging) {
+                CardDefaults.elevatedCardElevation(defaultElevation = 8.dp)
+            } else {
+                CardDefaults.cardElevation()
+            }
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                dragHandle()
+                Spacer(Modifier.width(8.dp))
                 ProfileAvatar(name = profile.name, colorHex = profile.colorHex)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {

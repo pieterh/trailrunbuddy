@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface ProfileDao {
 
     @Transaction
-    @Query("SELECT * FROM profiles ORDER BY created_at DESC")
+    @Query("SELECT * FROM profiles ORDER BY sort_order ASC")
     fun observeAll(): Flow<List<ProfileWithTimers>>
 
     @Transaction
@@ -25,6 +25,9 @@ interface ProfileDao {
 
     @Update
     suspend fun update(profile: ProfileEntity)
+
+    @Update
+    suspend fun updateAll(profiles: List<ProfileEntity>)
 
     @Query("DELETE FROM profiles WHERE id = :id")
     suspend fun deleteById(id: Long)

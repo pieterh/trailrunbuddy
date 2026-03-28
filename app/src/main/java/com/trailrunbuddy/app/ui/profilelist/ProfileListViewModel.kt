@@ -6,6 +6,7 @@ import com.trailrunbuddy.app.domain.model.Profile
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileResult
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.GetProfilesUseCase
+import com.trailrunbuddy.app.domain.usecase.profile.ReorderProfilesUseCase
 import com.trailrunbuddy.app.domain.usecase.profile.UndoDeleteProfileUseCase
 import com.trailrunbuddy.app.platform.service.SessionController
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +26,7 @@ class ProfileListViewModel @Inject constructor(
     private val getProfilesUseCase: GetProfilesUseCase,
     private val deleteProfileUseCase: DeleteProfileUseCase,
     private val undoDeleteProfileUseCase: UndoDeleteProfileUseCase,
+    private val reorderProfilesUseCase: ReorderProfilesUseCase,
     private val sessionController: SessionController
 ) : ViewModel() {
 
@@ -81,6 +83,23 @@ class ProfileListViewModel @Inject constructor(
     }
 
     fun onErrorDismissed() = _uiState.update { it.copy(errorMessage = null) }
+
+    fun onReorder(from: Int, to: Int) {
+        _uiState.update { state ->
+            val reordered = state.profiles.toMutableList().apply { add(to, removeAt(from)) }
+            state.copy(profiles = reordered)
+        }
+    }
+
+    fun onReorderFinished() {
+        viewModelScope.launch {
+            try {
+                reorderProfilesUseCase(_uiState.value.profiles.map { it.id })
+            } catch (e: Exception) {
+                _events.send(ProfileListUiEvent.ShowError("Failed to save new order"))
+            }
+        }
+    }
 
     fun onStartSession(profileId: Long) {
         sessionController.startSession(profileId)
