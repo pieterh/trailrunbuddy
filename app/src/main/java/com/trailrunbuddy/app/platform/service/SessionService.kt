@@ -8,6 +8,7 @@ import android.os.PowerManager
 import com.trailrunbuddy.app.domain.model.Session
 import com.trailrunbuddy.app.domain.model.SessionState
 import com.trailrunbuddy.app.domain.model.TimerState
+import com.trailrunbuddy.app.domain.model.TimerType
 import com.trailrunbuddy.app.domain.repository.ProfileRepository
 import com.trailrunbuddy.app.domain.repository.SessionRepository
 import com.trailrunbuddy.app.platform.audio.AudioPlayer
@@ -83,7 +84,7 @@ class SessionService : Service() {
                 profileId = profileId,
                 state = SessionState.RUNNING,
                 startedAt = startedAt,
-                timerStates = profile.timers.map { TimerState(it.id) }
+                timerStates = profile.allTimers.map { TimerState(it.id) }
             )
             sessionRepository.saveSession(session)
             stateHolder.updateActiveProfileId(profileId)
@@ -91,7 +92,9 @@ class SessionService : Service() {
             currentProfileId = profileId
 
             engine = SessionTimerEngine(
-                timers = profile.timers,
+                standaloneTimers = profile.standaloneTimers,
+                groupTimers = profile.group?.timers ?: emptyList(),
+                groupTimerType = profile.group?.timerType ?: TimerType.REPEATING,
                 startedAt = startedAt,
                 onEvent = ::handleTimerEvent
             )
@@ -115,7 +118,9 @@ class SessionService : Service() {
             stateHolder.updateSessionState(session.state)
 
             engine = SessionTimerEngine(
-                timers = profile.timers,
+                standaloneTimers = profile.standaloneTimers,
+                groupTimers = profile.group?.timers ?: emptyList(),
+                groupTimerType = profile.group?.timerType ?: TimerType.REPEATING,
                 startedAt = session.startedAt,
                 initialTotalPausedMs = session.totalPausedMs,
                 initialTimerStates = session.timerStates,
@@ -141,7 +146,6 @@ class SessionService : Service() {
         engine?.resume()
         stateHolder.updateSessionState(SessionState.RUNNING)
         persistCurrentState(SessionState.RUNNING)
-        // If restored from paused (monitoring jobs were never launched), start them now
         if (notificationJob == null && currentProfileId != -1L) {
             launchEngine(currentProfileId)
         }
@@ -165,12 +169,14 @@ class SessionService : Service() {
         acquireWakeLock()
         engine?.start(serviceScope)
 
-        // Forward countdown states to holder; throttle notification updates to 1 Hz
         var lastNotifiedSecond = -1L
         notificationJob = serviceScope.launch {
             engine?.countdownStates?.collectLatest { states ->
                 stateHolder.updateCountdownStates(states)
-                val next = states.filter { !it.isFinished }.minByOrNull { it.remainingMs }
+                // Only show active timers in notification (skip waiting group timers)
+                val next = states
+                    .filter { !it.isFinished && (!it.isInGroup || it.isActiveInGroup) }
+                    .minByOrNull { it.remainingMs }
                 if (next != null) {
                     val currentSecond = next.remainingMs / 1000
                     if (currentSecond != lastNotifiedSecond) {
@@ -181,7 +187,6 @@ class SessionService : Service() {
             }
         }
 
-        // Persist to Room every PERSIST_INTERVAL_MS
         persistJob = serviceScope.launch {
             while (true) {
                 delay(PERSIST_INTERVAL_MS)
@@ -189,7 +194,6 @@ class SessionService : Service() {
             }
         }
 
-        // Show foreground notification
         showForegroundNotification(profileId, "Starting…", 0L)
     }
 

@@ -234,7 +234,7 @@ private fun ProfileListItem(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "${profile.timers.size} timer${if (profile.timers.size != 1) "s" else ""}",
+                        text = "${profile.allTimers.size} timer${if (profile.allTimers.size != 1) "s" else ""}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

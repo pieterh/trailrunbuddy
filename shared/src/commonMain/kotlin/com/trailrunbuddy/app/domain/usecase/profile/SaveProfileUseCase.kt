@@ -1,7 +1,7 @@
 package com.trailrunbuddy.app.domain.usecase.profile
 
 import com.trailrunbuddy.app.domain.model.Profile
-import com.trailrunbuddy.app.domain.model.Timer
+import com.trailrunbuddy.app.domain.model.ProfileItem
 import com.trailrunbuddy.app.domain.repository.ProfileRepository
 import javax.inject.Inject
 
@@ -14,14 +14,18 @@ sealed class SaveProfileResult {
 class SaveProfileUseCase @Inject constructor(
     private val repository: ProfileRepository
 ) {
-    suspend operator fun invoke(profile: Profile, timers: List<Timer>): SaveProfileResult {
+    suspend operator fun invoke(profile: Profile): SaveProfileResult {
         if (profile.name.isBlank()) {
             return SaveProfileResult.NameError("Profile name cannot be empty")
         }
-        if (timers.isEmpty()) {
+        if (profile.allTimers.isEmpty()) {
             return SaveProfileResult.TimersError("Add at least one timer")
         }
-        val profileId = repository.saveProfile(profile, timers)
+        val group = profile.group
+        if (group != null && group.timers.isEmpty()) {
+            return SaveProfileResult.TimersError("Add at least one timer to the group")
+        }
+        val profileId = repository.saveProfile(profile)
         return SaveProfileResult.Success(profileId)
     }
 }

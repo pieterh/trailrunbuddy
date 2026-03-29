@@ -8,5 +8,5 @@ class UndoDeleteProfileUseCase @Inject constructor(
     private val repository: ProfileRepository
 ) {
     suspend operator fun invoke(profile: Profile): Long =
-        repository.saveProfile(profile.copy(id = 0), profile.timers)
+        repository.saveProfile(profile.copy(id = 0))
 }

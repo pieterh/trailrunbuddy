@@ -2,6 +2,7 @@ package com.trailrunbuddy.app.ui.profilelist
 
 import app.cash.turbine.test
 import com.trailrunbuddy.app.domain.model.Profile
+import com.trailrunbuddy.app.domain.model.ProfileItem
 import com.trailrunbuddy.app.domain.model.Timer
 import com.trailrunbuddy.app.domain.model.TimerType
 import com.trailrunbuddy.app.domain.usecase.profile.DeleteProfileResult
@@ -46,8 +47,8 @@ class ProfileListViewModelTest {
         Timer(id = 1L, name = "Drink", durationSeconds = 600, timerType = TimerType.REPEATING)
     )
     private val sampleProfiles = listOf(
-        Profile(id = 1L, name = "Trail", colorHex = "#43A047", timers = sampleTimers),
-        Profile(id = 2L, name = "Road", colorHex = "#1E88E5", timers = sampleTimers)
+        Profile(id = 1L, name = "Trail", colorHex = "#43A047", items = sampleTimers.map { ProfileItem.StandaloneTimer(it) }),
+        Profile(id = 2L, name = "Road", colorHex = "#1E88E5", items = sampleTimers.map { ProfileItem.StandaloneTimer(it) })
     )
 
     @Before

@@ -14,9 +14,15 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["profile_id"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = TimerGroupEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["group_id"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("profile_id")]
+    indices = [Index("profile_id"), Index("group_id")]
 )
 data class TimerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -24,5 +30,6 @@ data class TimerEntity(
     val name: String,
     @ColumnInfo(name = "duration_seconds") val durationSeconds: Int,
     @ColumnInfo(name = "timer_type") val timerType: String,
-    @ColumnInfo(name = "sort_order") val sortOrder: Int
+    @ColumnInfo(name = "sort_order") val sortOrder: Int,
+    @ColumnInfo(name = "group_id") val groupId: Long? = null
 )

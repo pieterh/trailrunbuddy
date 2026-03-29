@@ -6,6 +6,7 @@ import com.trailrunbuddy.app.data.local.TrailRunBuddyDatabase
 import com.trailrunbuddy.app.data.local.dao.ProfileDao
 import com.trailrunbuddy.app.data.local.dao.SessionDao
 import com.trailrunbuddy.app.data.local.dao.TimerDao
+import com.trailrunbuddy.app.data.local.dao.TimerGroupDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +28,7 @@ object AppModule {
             TrailRunBuddyDatabase::class.java,
             "trailrunbuddy.db"
         )
-            .addMigrations(TrailRunBuddyDatabase.MIGRATION_1_2)
+            .addMigrations(TrailRunBuddyDatabase.MIGRATION_1_2, TrailRunBuddyDatabase.MIGRATION_2_3, TrailRunBuddyDatabase.MIGRATION_3_4)
             .build()
 
     @Provides
@@ -38,6 +39,9 @@ object AppModule {
 
     @Provides
     fun provideSessionDao(db: TrailRunBuddyDatabase): SessionDao = db.sessionDao()
+
+    @Provides
+    fun provideTimerGroupDao(db: TrailRunBuddyDatabase): TimerGroupDao = db.timerGroupDao()
 
     @Provides
     @IoDispatcher

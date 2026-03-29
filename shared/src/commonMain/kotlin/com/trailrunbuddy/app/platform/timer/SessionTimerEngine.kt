@@ -16,7 +16,9 @@ private const val TICK_INTERVAL_MS = 100L
 private const val PRE_WARNING_THRESHOLD_MS = 10_000L
 
 class SessionTimerEngine(
-    private val timers: List<Timer>,
+    private val standaloneTimers: List<Timer>,
+    private val groupTimers: List<Timer>,
+    private val groupTimerType: TimerType = TimerType.REPEATING,
     private val startedAt: Long,
     initialTotalPausedMs: Long = 0L,
     initialTimerStates: List<TimerState> = emptyList(),
@@ -31,7 +33,7 @@ class SessionTimerEngine(
         .associateBy { it.timerId }
         .toMutableMap()
         .also { map ->
-            timers.forEach { t -> map.putIfAbsent(t.id, TimerState(t.id)) }
+            (standaloneTimers + groupTimers).forEach { t -> map.putIfAbsent(t.id, TimerState(t.id)) }
         }
 
     // Track which timers have had their pre-warning fired in the current cycle
@@ -75,19 +77,20 @@ class SessionTimerEngine(
 
     private suspend fun tick() {
         val now = pausedAtMs ?: clock()
-        val elapsedMs = now - startedAt - totalPausedMs
+        val elapsedMs = (now - startedAt - totalPausedMs).coerceAtLeast(0L)
 
-        val states = timers.map { timer ->
+        val standaloneStates = standaloneTimers.map { timer ->
             val durationMs = timer.durationSeconds * 1000L
             val state = mutableTimerStates.getOrPut(timer.id) { TimerState(timer.id) }
-
             when (timer.timerType) {
                 TimerType.REPEATING -> computeRepeating(timer, durationMs, elapsedMs, state)
                 TimerType.ONCE -> computeOnce(timer, durationMs, elapsedMs, state)
             }
         }
 
-        _countdownStates.value = states
+        val groupStates = computeGroupTimers(elapsedMs)
+
+        _countdownStates.value = standaloneStates + groupStates
     }
 
     private suspend fun computeRepeating(
@@ -100,14 +103,12 @@ class SessionTimerEngine(
         val elapsedInCycle = elapsedMs % durationMs
         val remainingMs = durationMs - elapsedInCycle
 
-        // Fire alert when a new cycle completes
         if (cycleCount > state.cycleCount) {
             mutableTimerStates[timer.id] = state.copy(cycleCount = cycleCount)
             preWarningFired.remove(Pair(timer.id, cycleCount))
             onEvent(TimerEvent.Alert(timer.id, timer.name))
         }
 
-        // Fire pre-warning at T-10s of the current cycle
         val key = Pair(timer.id, cycleCount)
         if (remainingMs <= PRE_WARNING_THRESHOLD_MS && remainingMs > (TICK_INTERVAL_MS * 2) && key !in preWarningFired) {
             preWarningFired.add(key)
@@ -141,13 +142,11 @@ class SessionTimerEngine(
 
         val remainingMs = (durationMs - elapsedMs).coerceAtLeast(0L)
 
-        // Fire alert when timer expires
         if (remainingMs == 0L) {
             mutableTimerStates[timer.id] = state.copy(firedOnce = true, cycleCount = 1)
             onEvent(TimerEvent.Alert(timer.id, timer.name))
         }
 
-        // Fire pre-warning at T-10s
         val key = Pair(timer.id, 0)
         if (remainingMs <= PRE_WARNING_THRESHOLD_MS && remainingMs > (TICK_INTERVAL_MS * 2) && key !in preWarningFired) {
             preWarningFired.add(key)
@@ -161,5 +160,54 @@ class SessionTimerEngine(
             isPreWarning = remainingMs <= PRE_WARNING_THRESHOLD_MS && !state.firedOnce,
             isFinished = false
         )
+    }
+
+    private suspend fun computeGroupTimers(elapsedMs: Long): List<TimerCountdownState> {
+        if (groupTimers.isEmpty()) return emptyList()
+
+        val totalCycleMs = groupTimers.sumOf { it.durationSeconds * 1000L }
+        val completedCycles = (elapsedMs / totalCycleMs).toInt()
+        val positionInCycle = elapsedMs % totalCycleMs
+        val isGroupDone = groupTimerType == TimerType.ONCE && completedCycles >= 1
+
+        return groupTimers.mapIndexed { index, timer ->
+            val durationMs = timer.durationSeconds * 1000L
+            val offsetMs = groupTimers.take(index).sumOf { it.durationSeconds * 1000L }
+            val endMs = offsetMs + durationMs
+
+            val isActive = !isGroupDone && positionInCycle >= offsetMs && positionInCycle < endMs
+            val remainingMs = when {
+                isGroupDone -> 0L
+                isActive -> endMs - positionInCycle
+                else -> durationMs
+            }
+            val firedCount = completedCycles + if (positionInCycle >= endMs) 1 else 0
+
+            val state = mutableTimerStates.getOrPut(timer.id) { TimerState(timer.id) }
+
+            if (firedCount > state.cycleCount) {
+                mutableTimerStates[timer.id] = state.copy(cycleCount = firedCount)
+                preWarningFired.remove(Pair(timer.id, firedCount))
+                onEvent(TimerEvent.Alert(timer.id, timer.name))
+            }
+
+            if (isActive) {
+                val key = Pair(timer.id, firedCount)
+                if (remainingMs <= PRE_WARNING_THRESHOLD_MS && remainingMs > (TICK_INTERVAL_MS * 2) && key !in preWarningFired) {
+                    preWarningFired.add(key)
+                    onEvent(TimerEvent.PreWarning(timer.id, timer.name))
+                }
+            }
+
+            TimerCountdownState(
+                timer = timer,
+                remainingMs = remainingMs,
+                cycleCount = firedCount,
+                isPreWarning = isActive && remainingMs <= PRE_WARNING_THRESHOLD_MS,
+                isFinished = isGroupDone,
+                isInGroup = true,
+                isActiveInGroup = isActive
+            )
+        }
     }
 }

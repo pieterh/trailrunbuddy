@@ -17,6 +17,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -75,13 +76,21 @@ fun ActiveSessionScreen(
                 .padding(padding),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            val standalone = uiState.countdownStates.filter { !it.isInGroup }
+            val grouped = uiState.countdownStates.filter { it.isInGroup }
+
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(uiState.countdownStates, key = { it.timer.id }) { state ->
+                items(standalone, key = { it.timer.id }) { state ->
                     TimerCountdownCard(state)
+                }
+                if (grouped.isNotEmpty()) {
+                    item(key = "group_container") {
+                        GroupCountdownCard(grouped)
+                    }
                 }
             }
 
@@ -102,6 +111,64 @@ fun ActiveSessionScreen(
             onConfirm = viewModel::onStopConfirmed,
             onDismiss = viewModel::onStopDismissed
         )
+    }
+}
+
+@Composable
+private fun GroupCountdownCard(groupStates: List<TimerCountdownState>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "GROUP",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            HorizontalDivider()
+            groupStates.forEach { state ->
+                if (state.isActiveInGroup) {
+                    TimerCountdownCard(state)
+                } else {
+                    WaitingTimerCard(state)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaitingTimerCard(state: TimerCountdownState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = state.timer.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = "waiting",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            LinearProgressIndicator(
+                progress = { 1f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
+        }
     }
 }
 

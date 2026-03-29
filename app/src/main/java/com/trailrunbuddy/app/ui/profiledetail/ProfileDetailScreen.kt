@@ -1,5 +1,6 @@
 package com.trailrunbuddy.app.ui.profiledetail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +17,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -45,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trailrunbuddy.app.core.util.TimeFormatter
+import com.trailrunbuddy.app.domain.model.ProfileItem
 import com.trailrunbuddy.app.domain.model.Timer
 import com.trailrunbuddy.app.domain.model.TimerType
+import com.trailrunbuddy.app.ui.components.ConfirmationDialog
 import com.trailrunbuddy.app.ui.components.ErrorText
 import com.trailrunbuddy.app.ui.components.ProfileAvatar
 
@@ -122,7 +129,7 @@ fun ProfileDetailScreen(
                 }
             }
 
-            // Timers section header
+            // Items section header
             item {
                 Row(
                     modifier = Modifier
@@ -136,15 +143,47 @@ fun ProfileDetailScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    IconButton(onClick = viewModel::onShowAddTimer) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Timer")
+                    // "+" button with dropdown menu
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Add timer") },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.onShowAddStandaloneTimer()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Add group",
+                                        color = if (uiState.hasGroup)
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    viewModel.onAddGroup()
+                                },
+                                enabled = !uiState.hasGroup
+                            )
+                        }
                     }
                 }
                 HorizontalDivider()
                 uiState.timersError?.let { ErrorText(it, modifier = Modifier.padding(top = 4.dp)) }
             }
 
-            if (uiState.timers.isEmpty()) {
+            if (uiState.items.isEmpty()) {
                 item {
                     Text(
                         "No timers yet. Tap + to add one.",
@@ -154,12 +193,27 @@ fun ProfileDetailScreen(
                     )
                 }
             } else {
-                items(uiState.timers, key = { it.id.toString() + it.name }) { timer ->
-                    TimerListItem(
-                        timer = timer,
-                        onEdit = { viewModel.onEditTimer(timer) },
-                        onDelete = { viewModel.onDeleteTimer(timer) }
-                    )
+                items(uiState.items, key = { item ->
+                    when (item) {
+                        is ProfileItem.StandaloneTimer -> "timer_${item.timer.id}_${item.timer.name}"
+                        is ProfileItem.Group -> "group"
+                    }
+                }) { item ->
+                    when (item) {
+                        is ProfileItem.StandaloneTimer -> TimerListItem(
+                            timer = item.timer,
+                            onEdit = { viewModel.onEditTimer(item.timer) },
+                            onDelete = { viewModel.onDeleteTimer(item.timer) }
+                        )
+                        is ProfileItem.Group -> GroupCard(
+                            group = item,
+                            onAddTimer = viewModel::onShowAddTimerToGroup,
+                            onEditTimer = { viewModel.onEditTimer(it) },
+                            onDeleteTimer = { viewModel.onDeleteTimer(it) },
+                            onDeleteGroup = viewModel::onRequestDeleteGroup,
+                            onTimerTypeChange = viewModel::onGroupTimerTypeChange
+                        )
+                    }
                 }
             }
 
@@ -167,13 +221,134 @@ fun ProfileDetailScreen(
         }
     }
 
-    // Add/Edit timer bottom sheet
     if (uiState.showAddTimerDialog) {
         AddTimerSheet(
             editingTimer = uiState.editingTimer,
+            showTimerTypeSelection = !uiState.addingTimerToGroup && !uiState.editingTimerIsGrouped,
             onDismiss = viewModel::onDismissTimerDialog,
             onSave = viewModel::onSaveTimer
         )
+    }
+
+    if (uiState.showDeleteGroupDialog) {
+        ConfirmationDialog(
+            title = "Delete group?",
+            message = "All timers inside the group will also be deleted.",
+            confirmLabel = "Delete",
+            onConfirm = viewModel::onConfirmDeleteGroup,
+            onDismiss = viewModel::onDismissDeleteGroup
+        )
+    }
+}
+
+@Composable
+private fun GroupCard(
+    group: ProfileItem.Group,
+    onAddTimer: () -> Unit,
+    onEditTimer: (Timer) -> Unit,
+    onDeleteTimer: (Timer) -> Unit,
+    onDeleteGroup: () -> Unit,
+    onTimerTypeChange: (TimerType) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Group header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "GROUP",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = group.group.timerType == TimerType.REPEATING,
+                        onClick = { onTimerTypeChange(TimerType.REPEATING) },
+                        label = { Text("Repeat") }
+                    )
+                    FilterChip(
+                        selected = group.group.timerType == TimerType.ONCE,
+                        onClick = { onTimerTypeChange(TimerType.ONCE) },
+                        label = { Text("Once") }
+                    )
+                    IconButton(onClick = onDeleteGroup) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete group",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+            HorizontalDivider()
+
+            if (group.group.timers.isEmpty()) {
+                Text(
+                    "No timers in group yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            } else {
+                group.group.timers.forEach { timer ->
+                    GroupedTimerItem(
+                        timer = timer,
+                        onEdit = { onEditTimer(timer) },
+                        onDelete = { onDeleteTimer(timer) }
+                    )
+                }
+            }
+
+            TextButton(
+                onClick = onAddTimer,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                Text("Add timer to group")
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupedTimerItem(
+    timer: Timer,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.small
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(timer.name, style = MaterialTheme.typography.titleSmall)
+            Text(
+                TimeFormatter.formatHhMmSs(timer.durationSeconds.toLong()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onEdit) {
+            Icon(Icons.Default.Edit, contentDescription = "Edit")
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+        }
     }
 }
 
@@ -221,6 +396,7 @@ private fun TimerListItem(
 @Composable
 private fun AddTimerSheet(
     editingTimer: Timer?,
+    showTimerTypeSelection: Boolean,
     onDismiss: () -> Unit,
     onSave: (name: String, durationSeconds: Int, timerType: TimerType) -> Unit
 ) {
@@ -281,17 +457,19 @@ private fun AddTimerSheet(
             }
             durationError?.let { ErrorText(it) }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = timerType == TimerType.REPEATING,
-                    onClick = { timerType = TimerType.REPEATING },
-                    label = { Text("Repeating") }
-                )
-                FilterChip(
-                    selected = timerType == TimerType.ONCE,
-                    onClick = { timerType = TimerType.ONCE },
-                    label = { Text("Once") }
-                )
+            if (showTimerTypeSelection) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = timerType == TimerType.REPEATING,
+                        onClick = { timerType = TimerType.REPEATING },
+                        label = { Text("Repeating") }
+                    )
+                    FilterChip(
+                        selected = timerType == TimerType.ONCE,
+                        onClick = { timerType = TimerType.ONCE },
+                        label = { Text("Once") }
+                    )
+                }
             }
 
             Button(

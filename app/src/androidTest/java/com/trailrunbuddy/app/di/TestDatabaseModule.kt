@@ -7,6 +7,7 @@ import com.trailrunbuddy.app.data.local.TrailRunBuddyDatabase
 import com.trailrunbuddy.app.data.local.dao.ProfileDao
 import com.trailrunbuddy.app.data.local.dao.SessionDao
 import com.trailrunbuddy.app.data.local.dao.TimerDao
+import com.trailrunbuddy.app.data.local.dao.TimerGroupDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,6 +37,9 @@ object TestDatabaseModule {
 
     @Provides
     fun provideSessionDao(db: TrailRunBuddyDatabase): SessionDao = db.sessionDao()
+
+    @Provides
+    fun provideTimerGroupDao(db: TrailRunBuddyDatabase): TimerGroupDao = db.timerGroupDao()
 
     @Provides
     @IoDispatcher

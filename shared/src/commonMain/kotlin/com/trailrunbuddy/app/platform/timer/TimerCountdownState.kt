@@ -7,5 +7,7 @@ data class TimerCountdownState(
     val remainingMs: Long,
     val cycleCount: Int,
     val isPreWarning: Boolean,
-    val isFinished: Boolean  // ONCE timer that has already fired
+    val isFinished: Boolean,    // ONCE timer that has already fired
+    val isInGroup: Boolean = false,       // true for timers inside a group
+    val isActiveInGroup: Boolean = false  // true only for the currently active group timer
 )
