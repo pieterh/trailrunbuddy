@@ -5,6 +5,7 @@ import android.content.Intent
 import com.trailrunbuddy.app.domain.model.SessionState
 import com.trailrunbuddy.app.platform.timer.TimerCountdownState
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,6 +18,7 @@ class SessionServiceConnection @Inject constructor(
     override val countdownStates: StateFlow<List<TimerCountdownState>> = stateHolder.countdownStates
     override val sessionState: StateFlow<SessionState?> = stateHolder.sessionState
     override val activeProfileId: StateFlow<Long?> = stateHolder.activeProfileId
+    override val alertEvents: SharedFlow<Long> = stateHolder.alertEvents
 
     override fun startSession(profileId: Long) {
         val intent = Intent(context, SessionService::class.java).apply {

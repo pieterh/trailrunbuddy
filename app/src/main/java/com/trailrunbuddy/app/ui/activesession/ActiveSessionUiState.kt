@@ -7,7 +7,8 @@ data class ActiveSessionUiState(
     val isLoading: Boolean = true,
     val sessionState: SessionState? = null,
     val countdownStates: List<TimerCountdownState> = emptyList(),
-    val showStopConfirmDialog: Boolean = false
+    val showStopConfirmDialog: Boolean = false,
+    val firingTimerIds: Set<Long> = emptySet()
 )
 
 sealed class ActiveSessionUiEvent {

@@ -9,6 +9,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -28,12 +29,14 @@ class ActiveSessionViewModelTest {
 
     private val sessionStateFlow = MutableStateFlow<SessionState?>(SessionState.RUNNING)
     private val countdownFlow = MutableStateFlow<List<TimerCountdownState>>(emptyList())
+    private val alertEventsFlow = MutableSharedFlow<Long>()
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { sessionServiceConnection.sessionState } returns sessionStateFlow
         every { sessionServiceConnection.countdownStates } returns countdownFlow
+        every { sessionServiceConnection.alertEvents } returns alertEventsFlow
     }
 
     @After

@@ -226,7 +226,10 @@ class SessionService : Service() {
 
     private suspend fun handleTimerEvent(event: TimerEvent) {
         when (event) {
-            is TimerEvent.Alert -> audioManager.playAlert()
+            is TimerEvent.Alert -> {
+                audioManager.playAlert()
+                stateHolder.notifyAlertFired(event.timerId)
+            }
             is TimerEvent.PreWarning -> audioManager.playPreWarning()
         }
     }

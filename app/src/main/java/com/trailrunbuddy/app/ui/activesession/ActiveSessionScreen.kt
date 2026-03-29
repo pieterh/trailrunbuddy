@@ -1,6 +1,8 @@
 package com.trailrunbuddy.app.ui.activesession
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -91,10 +93,14 @@ fun ActiveSessionScreen(
                     if (state.isInGroup) {
                         if (!groupEmitted) {
                             groupEmitted = true
-                            item(key = "group_container") { GroupCountdownCard(groupedStates) }
+                            item(key = "group_container") {
+                                GroupCountdownCard(groupedStates, uiState.firingTimerIds)
+                            }
                         }
                     } else {
-                        item(key = state.timer.id) { TimerCountdownCard(state) }
+                        item(key = state.timer.id) {
+                            TimerCountdownCard(state, isFiring = state.timer.id in uiState.firingTimerIds)
+                        }
                     }
                 }
             }
@@ -120,7 +126,7 @@ fun ActiveSessionScreen(
 }
 
 @Composable
-private fun GroupCountdownCard(groupStates: List<TimerCountdownState>) {
+private fun GroupCountdownCard(groupStates: List<TimerCountdownState>, firingTimerIds: Set<Long>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -134,9 +140,9 @@ private fun GroupCountdownCard(groupStates: List<TimerCountdownState>) {
             HorizontalDivider()
             groupStates.forEach { state ->
                 if (state.isActiveInGroup) {
-                    TimerCountdownCard(state)
+                    TimerCountdownCard(state, isFiring = state.timer.id in firingTimerIds)
                 } else {
-                    WaitingTimerCard(state)
+                    WaitingTimerCard(state, isFiring = state.timer.id in firingTimerIds)
                 }
             }
         }
@@ -144,10 +150,15 @@ private fun GroupCountdownCard(groupStates: List<TimerCountdownState>) {
 }
 
 @Composable
-private fun WaitingTimerCard(state: TimerCountdownState) {
+private fun WaitingTimerCard(state: TimerCountdownState, isFiring: Boolean = false) {
+    val containerColor by animateColorAsState(
+        if (isFiring) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        tween(500),
+        label = "waitingCardColor"
+    )
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -178,7 +189,7 @@ private fun WaitingTimerCard(state: TimerCountdownState) {
 }
 
 @Composable
-private fun TimerCountdownCard(state: TimerCountdownState) {
+private fun TimerCountdownCard(state: TimerCountdownState, isFiring: Boolean = false) {
     val durationMs = state.timer.durationSeconds * 1000L
     val progress = if (durationMs > 0 && !state.isFinished) {
         (state.remainingMs.toFloat() / durationMs).coerceIn(0f, 1f)
@@ -186,11 +197,13 @@ private fun TimerCountdownCard(state: TimerCountdownState) {
         if (state.isFinished) 0f else 1f
     }
 
-    val containerColor = when {
+    val targetColor = when {
+        isFiring -> MaterialTheme.colorScheme.primaryContainer
         state.isFinished -> MaterialTheme.colorScheme.surfaceVariant
         state.isPreWarning -> MaterialTheme.colorScheme.errorContainer
         else -> MaterialTheme.colorScheme.surface
     }
+    val containerColor by animateColorAsState(targetColor, tween(500), label = "cardColor")
 
     Card(
         modifier = Modifier.fillMaxWidth(),
