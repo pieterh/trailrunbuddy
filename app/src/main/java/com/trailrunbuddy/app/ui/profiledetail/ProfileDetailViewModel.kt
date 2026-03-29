@@ -192,6 +192,13 @@ class ProfileDetailViewModel @Inject constructor(
         }
     }
 
+    fun onReorderItem(from: Int, to: Int) {
+        _uiState.update { state ->
+            val reordered = state.items.toMutableList().apply { add(to, removeAt(from)) }
+            state.copy(items = reordered)
+        }
+    }
+
     fun onGroupTimerTypeChange(timerType: TimerType) {
         _uiState.update { state ->
             state.copy(

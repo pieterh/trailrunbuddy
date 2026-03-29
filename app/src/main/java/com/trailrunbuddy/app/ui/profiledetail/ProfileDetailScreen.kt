@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Button
@@ -55,6 +57,8 @@ import com.trailrunbuddy.app.domain.model.TimerType
 import com.trailrunbuddy.app.ui.components.ConfirmationDialog
 import com.trailrunbuddy.app.ui.components.ErrorText
 import com.trailrunbuddy.app.ui.components.ProfileAvatar
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +98,13 @@ fun ProfileDetailScreen(
             )
         }
     ) { padding ->
+        val lazyListState = rememberLazyListState()
+        // Profile header + timers header = 2 non-reorderable items before the profile items
+        val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
+            viewModel.onReorderItem(from.index - 2, to.index - 2)
+        }
         LazyColumn(
+            state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -198,20 +208,42 @@ fun ProfileDetailScreen(
                         is ProfileItem.Group -> "group"
                     }
                 }) { item ->
-                    when (item) {
-                        is ProfileItem.StandaloneTimer -> TimerListItem(
-                            timer = item.timer,
-                            onEdit = { viewModel.onEditTimer(item.timer) },
-                            onDelete = { viewModel.onDeleteTimer(item.timer) }
-                        )
-                        is ProfileItem.Group -> GroupCard(
-                            group = item,
-                            onAddTimer = viewModel::onShowAddTimerToGroup,
-                            onEditTimer = { viewModel.onEditTimer(it) },
-                            onDeleteTimer = { viewModel.onDeleteTimer(it) },
-                            onDeleteGroup = viewModel::onRequestDeleteGroup,
-                            onTimerTypeChange = viewModel::onGroupTimerTypeChange
-                        )
+                    val itemKey = when (item) {
+                        is ProfileItem.StandaloneTimer -> "timer_${item.timer.id}_${item.timer.name}"
+                        is ProfileItem.Group -> "group"
+                    }
+                    ReorderableItem(reorderState, key = itemKey) { _ ->
+                        when (item) {
+                            is ProfileItem.StandaloneTimer -> TimerListItem(
+                                timer = item.timer,
+                                onEdit = { viewModel.onEditTimer(item.timer) },
+                                onDelete = { viewModel.onDeleteTimer(item.timer) },
+                                dragHandle = {
+                                    Icon(
+                                        Icons.Default.DragHandle,
+                                        contentDescription = "Reorder",
+                                        modifier = Modifier.draggableHandle(),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
+                            is ProfileItem.Group -> GroupCard(
+                                group = item,
+                                onAddTimer = viewModel::onShowAddTimerToGroup,
+                                onEditTimer = { viewModel.onEditTimer(it) },
+                                onDeleteTimer = { viewModel.onDeleteTimer(it) },
+                                onDeleteGroup = viewModel::onRequestDeleteGroup,
+                                onTimerTypeChange = viewModel::onGroupTimerTypeChange,
+                                dragHandle = {
+                                    Icon(
+                                        Icons.Default.DragHandle,
+                                        contentDescription = "Reorder",
+                                        modifier = Modifier.draggableHandle(),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -247,7 +279,8 @@ private fun GroupCard(
     onEditTimer: (Timer) -> Unit,
     onDeleteTimer: (Timer) -> Unit,
     onDeleteGroup: () -> Unit,
-    onTimerTypeChange: (TimerType) -> Unit
+    onTimerTypeChange: (TimerType) -> Unit,
+    dragHandle: @Composable () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -260,11 +293,17 @@ private fun GroupCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "GROUP",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    dragHandle()
+                    Text(
+                        "GROUP",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -355,13 +394,16 @@ private fun GroupedTimerItem(
 private fun TimerListItem(
     timer: Timer,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    dragHandle: @Composable () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            dragHandle()
+            Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
                 Text(timer.name, style = MaterialTheme.typography.titleSmall)
                 Text(

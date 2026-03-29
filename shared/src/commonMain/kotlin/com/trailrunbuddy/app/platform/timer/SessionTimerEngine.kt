@@ -19,6 +19,7 @@ class SessionTimerEngine(
     private val standaloneTimers: List<Timer>,
     private val groupTimers: List<Timer>,
     private val groupTimerType: TimerType = TimerType.REPEATING,
+    private val groupSortOrder: Int = 0,
     private val startedAt: Long,
     initialTotalPausedMs: Long = 0L,
     initialTimerStates: List<TimerState> = emptyList(),
@@ -85,12 +86,12 @@ class SessionTimerEngine(
             when (timer.timerType) {
                 TimerType.REPEATING -> computeRepeating(timer, durationMs, elapsedMs, state)
                 TimerType.ONCE -> computeOnce(timer, durationMs, elapsedMs, state)
-            }
+            }.copy(profileItemSortOrder = timer.sortOrder)
         }
 
         val groupStates = computeGroupTimers(elapsedMs)
 
-        _countdownStates.value = standaloneStates + groupStates
+        _countdownStates.value = (standaloneStates + groupStates).sortedBy { it.profileItemSortOrder }
     }
 
     private suspend fun computeRepeating(
@@ -206,7 +207,8 @@ class SessionTimerEngine(
                 isPreWarning = isActive && remainingMs <= PRE_WARNING_THRESHOLD_MS,
                 isFinished = isGroupDone,
                 isInGroup = true,
-                isActiveInGroup = isActive
+                isActiveInGroup = isActive,
+                profileItemSortOrder = groupSortOrder
             )
         }
     }

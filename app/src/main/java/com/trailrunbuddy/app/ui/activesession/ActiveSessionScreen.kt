@@ -76,20 +76,25 @@ fun ActiveSessionScreen(
                 .padding(padding),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            val standalone = uiState.countdownStates.filter { !it.isInGroup }
-            val grouped = uiState.countdownStates.filter { it.isInGroup }
+            // States are sorted by profileItemSortOrder from the engine.
+            // Walk the list and collapse consecutive group states into one card.
+            val states = uiState.countdownStates
+            val groupedStates = states.filter { it.isInGroup }
+            var groupEmitted = false
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(standalone, key = { it.timer.id }) { state ->
-                    TimerCountdownCard(state)
-                }
-                if (grouped.isNotEmpty()) {
-                    item(key = "group_container") {
-                        GroupCountdownCard(grouped)
+                states.forEach { state ->
+                    if (state.isInGroup) {
+                        if (!groupEmitted) {
+                            groupEmitted = true
+                            item(key = "group_container") { GroupCountdownCard(groupedStates) }
+                        }
+                    } else {
+                        item(key = state.timer.id) { TimerCountdownCard(state) }
                     }
                 }
             }

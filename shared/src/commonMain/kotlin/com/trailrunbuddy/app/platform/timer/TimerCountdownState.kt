@@ -9,5 +9,6 @@ data class TimerCountdownState(
     val isPreWarning: Boolean,
     val isFinished: Boolean,    // ONCE timer that has already fired
     val isInGroup: Boolean = false,       // true for timers inside a group
-    val isActiveInGroup: Boolean = false  // true only for the currently active group timer
+    val isActiveInGroup: Boolean = false, // true only for the currently active group timer
+    val profileItemSortOrder: Int = 0    // position of this item in the profile's item list
 )

@@ -64,7 +64,7 @@ class ProfileRepositoryImpl @Inject constructor(
                         }
                         is ProfileItem.Group -> {
                             val groupId = timerGroupDao.insert(
-                                TimerGroupEntity(profileId = savedId, sortOrder = itemIndex)
+                                item.group.toEntity(profileId = savedId, sortOrder = itemIndex)
                             )
                             item.group.timers.forEachIndexed { timerIndex, timer ->
                                 timerEntities.add(

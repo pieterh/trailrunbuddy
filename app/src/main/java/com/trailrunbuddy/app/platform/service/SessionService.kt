@@ -95,6 +95,7 @@ class SessionService : Service() {
                 standaloneTimers = profile.standaloneTimers,
                 groupTimers = profile.group?.timers ?: emptyList(),
                 groupTimerType = profile.group?.timerType ?: TimerType.REPEATING,
+                groupSortOrder = profile.group?.sortOrder ?: 0,
                 startedAt = startedAt,
                 onEvent = ::handleTimerEvent
             )
@@ -121,6 +122,7 @@ class SessionService : Service() {
                 standaloneTimers = profile.standaloneTimers,
                 groupTimers = profile.group?.timers ?: emptyList(),
                 groupTimerType = profile.group?.timerType ?: TimerType.REPEATING,
+                groupSortOrder = profile.group?.sortOrder ?: 0,
                 startedAt = session.startedAt,
                 initialTotalPausedMs = session.totalPausedMs,
                 initialTimerStates = session.timerStates,
