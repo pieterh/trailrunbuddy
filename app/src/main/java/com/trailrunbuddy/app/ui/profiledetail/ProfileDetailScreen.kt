@@ -39,7 +39,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -403,8 +402,10 @@ private fun AddTimerSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var name by remember { mutableStateOf(editingTimer?.name ?: "") }
-    var hours by remember { mutableIntStateOf((editingTimer?.durationSeconds ?: 0) / 3600) }
-    var minutes by remember { mutableIntStateOf(((editingTimer?.durationSeconds ?: 0) % 3600) / 60) }
+    val d = editingTimer?.durationSeconds ?: 0
+    var hoursText by remember { mutableStateOf(if (d / 3600 > 0) (d / 3600).toString() else "") }
+    var minutesText by remember { mutableStateOf(if ((d % 3600) / 60 > 0) ((d % 3600) / 60).toString() else "") }
+    var secondsText by remember { mutableStateOf(if (d % 60 > 0) (d % 60).toString() else "") }
     var timerType by remember { mutableStateOf(editingTimer?.timerType ?: TimerType.REPEATING) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var durationError by remember { mutableStateOf<String?>(null) }
@@ -434,22 +435,27 @@ private fun AddTimerSheet(
             )
             nameError?.let { ErrorText(it) }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = if (hours == 0) "" else hours.toString(),
-                    onValueChange = { hours = it.toIntOrNull() ?: 0; durationError = null },
+                    value = hoursText,
+                    onValueChange = { hoursText = it.filter(Char::isDigit); durationError = null },
                     label = { Text("Hours") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
-                    value = if (minutes == 0) "" else minutes.toString(),
-                    onValueChange = { minutes = (it.toIntOrNull() ?: 0).coerceIn(0, 59); durationError = null },
-                    label = { Text("Minutes") },
+                    value = minutesText,
+                    onValueChange = { minutesText = it.filter(Char::isDigit); durationError = null },
+                    label = { Text("Min") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = secondsText,
+                    onValueChange = { secondsText = it.filter(Char::isDigit); durationError = null },
+                    label = { Text("Sec") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -474,11 +480,18 @@ private fun AddTimerSheet(
 
             Button(
                 onClick = {
-                    val totalSeconds = hours * 3600 + minutes * 60
+                    val h = hoursText.toIntOrNull() ?: 0
+                    val m = minutesText.toIntOrNull() ?: 0
+                    val s = secondsText.toIntOrNull() ?: 0
                     if (name.isBlank()) {
                         nameError = "Timer name cannot be empty"
                         return@Button
                     }
+                    if (m > 59 || s > 59) {
+                        durationError = "Minutes and seconds must be 0–59"
+                        return@Button
+                    }
+                    val totalSeconds = h * 3600 + m * 60 + s
                     if (totalSeconds <= 0) {
                         durationError = "Duration must be greater than 0"
                         return@Button
